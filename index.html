@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tire Inventory Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .input-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .input-container label {
+            margin-right: 10px;
+        }
+        .inventory {
+            margin-top: 30px;
+            border-collapse: collapse;
+            width: 50%;
+        }
+        .inventory th, .inventory td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .inventory th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tire Inventory Management</h1>
+
+    <div class="input-container">
+        <label for="brand">Brand:</label>
+        <input type="text" id="brand">
+    </div>
+    <div class="input-container">
+        <label for="quantity">Quantity:</label>
+        <input type="number" id="quantity">
+    </div>
+    <div class="input-container">
+        <label for="width">Width:</label>
+        <input type="number" id="width">
+    </div>
+    <div class="input-container">
+        <label for="aspectRatio">Aspect Ratio:</label>
+        <input type="number" id="aspectRatio">
+    </div>
+    <div class="input-container">
+        <label for="rimDiameter">Rim Diameter:</label>
+        <input type="number" id="rimDiameter">
+    </div>
+    <button onclick="addTires()">Add Tires</button>
+
+    <h2>Sell Tires</h2>
+    <div class="input-container">
+        <label for="sellBrand">Brand:</label>
+        <input type="text" id="sellBrand">
+    </div>
+    <div class="input-container">
+        <label for="sellQuantity">Quantity:</label>
+        <input type="number" id="sellQuantity">
+    </div>
+    <div class="input-container">
+        <label for="sellWidth">Width:</label>
+        <input type="number" id="sellWidth">
+    </div>
+    <div class="input-container">
+        <label for="sellAspectRatio">Aspect Ratio:</label>
+        <input type="number" id="sellAspectRatio">
+    </div>
+    <div class="input-container">
+        <label for="sellRimDiameter">Rim Diameter:</label>
+        <input type="number" id="sellRimDiameter">
+    </div>
+  <div class="input-container">
+      <label for="sellNotes">Notes:</label>
+      <input type="text" id="sellNotes" />
+    </div>
+    <button onclick="sellTires()">Sell Tires</button>
+
+    <h2>Current Inventory</h2>
+    <table class="inventory">
+        <thead>
+            <tr>
+                <th>Brand</th>
+                <th>Quantity</th>
+                <th>Size</th>
+            </tr>
+        </thead>
+        <tbody id="inventoryBody">
+            <!-- Inventory items will be dynamically added here -->
+        </tbody>
+    </table>
+
+    <h2>Tires Sold</h2>
+    <div id="tiresSold">
+        <!-- Sold tires information will be dynamically added here -->
+    </div>
+
+    <script>
+      function initializeInventory() {
+        let savedInventory = localStorage.getItem("tireInventory");
+        if (savedInventory) {
+          return JSON.parse(savedInventory);
+        } else {
+          return [];
+        }
+      }
+
+      // Initialize tire inventory on page load
+      let tireInventory = initializeInventory();
+      let tiresSold = JSON.parse(localStorage.getItem("tiresSold")) || [];
+
+      // Function to add tires to inventory
+      function addTires() {
+        let brand = document.getElementById("brand").value.trim();
+        let quantity = parseInt(document.getElementById("quantity").value);
+        let width = parseInt(document.getElementById("width").value);
+        let aspectRatio = parseInt(
+          document.getElementById("aspectRatio").value
+        );
+        let rimDiameter = parseInt(
+          document.getElementById("rimDiameter").value
+        );
+
+        if (
+          brand &&
+          !isNaN(quantity) &&
+          !isNaN(width) &&
+          !isNaN(aspectRatio) &&
+          !isNaN(rimDiameter)
+        ) {
+          // Calculate tire size
+          let size = `${width}/${aspectRatio}R${rimDiameter}`;
+
+          // Check if the tire already exists in inventory
+          const existingTireIndex = tireInventory.findIndex(
+            (tire) => tire.brand === brand && tire.size === size
+          );
+
+          if (existingTireIndex !== -1) {
+            // If tire exists, update quantity
+            tireInventory[existingTireIndex].quantity += quantity;
+          } else {
+            // If tire doesn't exist, add it to inventory
+            tireInventory.push({ brand, quantity, size });
+          }
+
+          // Save inventory to localStorage
+          localStorage.setItem("tireInventory", JSON.stringify(tireInventory));
+
+          // Refresh inventory display
+          displayInventory();
+          clearInputs();
+        } else {
+          alert("Please fill all fields with valid values.");
+        }
+      }
+
+      // Function to sell tires from inventory
+      function sellTires() {
+        let brand = document.getElementById("sellBrand").value.trim();
+        let quantity = parseInt(document.getElementById("sellQuantity").value);
+        let width = parseInt(document.getElementById("sellWidth").value);
+        let aspectRatio = parseInt(
+          document.getElementById("sellAspectRatio").value
+        );
+        let rimDiameter = parseInt(
+          document.getElementById("sellRimDiameter").value
+        );
+        let sellNotes = document.getElementById("sellNotes").value.trim(); // Parse as string, not integer
+
+        if (
+          brand &&
+          !isNaN(quantity) &&
+          !isNaN(width) &&
+          !isNaN(aspectRatio) &&
+          !isNaN(rimDiameter)
+        ) {
+          // Calculate tire size
+          let size = `${width}/${aspectRatio}R${rimDiameter}`;
+
+          // Find the tire in inventory
+          const tireIndex = tireInventory.findIndex(
+            (tire) => tire.brand === brand && tire.size === size
+          );
+
+          if (tireIndex !== -1) {
+            // Check if enough quantity is available to sell
+            if (tireInventory[tireIndex].quantity >= quantity) {
+              // Reduce the quantity of tires
+              tireInventory[tireIndex].quantity -= quantity;
+
+              // If quantity becomes 0, remove tire from inventory
+              if (tireInventory[tireIndex].quantity === 0) {
+                tireInventory.splice(tireIndex, 1);
+              }
+
+              // Save inventory to localStorage
+              localStorage.setItem(
+                "tireInventory",
+                JSON.stringify(tireInventory)
+              );
+
+              // Record sold tires
+              let soldTires = { brand, quantity, size, sellNotes }; // Save tire details before removing it
+              tiresSold.push(soldTires);
+              localStorage.setItem("tiresSold", JSON.stringify(tiresSold));
+
+              // Refresh inventory display
+              displayInventory();
+              displayTiresSold();
+              clearInputs();
+
+              alert("Tires sold successfully.");
+            } else {
+              alert("Insufficient quantity in inventory.");
+            }
+          } else {
+            alert("Tire not found in inventory.");
+          }
+        } else {
+          alert("Please fill all fields with valid values.");
+        }
+      }
+
+      // Function to display current inventory
+      function displayInventory() {
+        let inventoryBody = document.getElementById("inventoryBody");
+        inventoryBody.innerHTML = "";
+
+        tireInventory.forEach((tire) => {
+          let row = document.createElement("tr");
+          row.innerHTML = `
+                    <td>${tire.brand}</td>
+                    <td>${tire.quantity}</td>
+                    <td>${tire.size}</td>
+                `;
+          inventoryBody.appendChild(row);
+        });
+      }
+
+      // Function to display sold tires
+      function displayTiresSold() {
+        let tiresSoldDiv = document.getElementById("tiresSold");
+        tiresSoldDiv.innerHTML = "";
+
+        tiresSold.forEach((tire) => {
+          let div = document.createElement("div");
+          div.textContent = `${tire.quantity} ${tire.brand} ${tire.size} tires sold`;
+          if (tire.sellNotes) {
+            div.textContent += `, Notes: ${tire.sellNotes}`; // Include notes if they exist
+          }
+          tiresSoldDiv.appendChild(div);
+        });
+      }
+
+      // Function to clear input fields
+      function clearInputs() {
+        document.getElementById("brand").value = "";
+        document.getElementById("quantity").value = "";
+        document.getElementById("width").value = "";
+        document.getElementById("aspectRatio").value = "";
+        document.getElementById("rimDiameter").value = "";
+        document.getElementById("sellBrand").value = "";
+        document.getElementById("sellQuantity").value = "";
+        document.getElementById("sellWidth").value = "";
+        document.getElementById("sellAspectRatio").value = "";
+        document.getElementById("sellRimDiameter").value = "";
+        document.getElementById("sellNotes").value = ""; // Clear sellNotes input field
+      }
+
+      // Display initial inventory and sold tires co
+      displayInventory();
+      displayTiresSold();
+
+    </script>
+</body>
+</html>
+
